@@ -115,6 +115,195 @@ class PostgresDatabase {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchAllYearChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE time = '00:00:00' GROUP BY year, month, day, time, temperature;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der Jahresstatistik: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchYearChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE year = '2023' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der Jahresstatistik: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchCurrentYearChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE year = '2023' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der derzeitigen Jahresstatistik: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetch6MonthChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE year = '2023' AND month <= '6' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der 6 Monatstatistik: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchMonthChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE year = '2023' AND month = '1' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der Monatsstatistik: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetch5DaysChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE year = '2023'AND Month = '1' AND day <= 5 AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0 GROUP BY year, month, day, time, temperature;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der 5 Tagestatistik: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchDayChartData(String tableName) async {
+    try {
+      if(connection.isClosed) {
+        connectToDatabase();
+      }
+      String query_start = "SELECT year, month, day, time, temperature FROM ";
+      String query_end =" WHERE year = '2023' AND month = '1' AND day = '1' AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0 ORDER BY time;";
+      String query = "";
+      query += query_start + tableName + query_end;
+
+      List<List<dynamic>> results = await connection.query(query);
+
+      return results.map((row) {
+        return {
+          'Year': row[0],
+          'Month': row[1],
+          'Day': row[2],
+          'Time': row[3],
+          'Temperature': row[4],
+        };
+      }).toList();
+    } catch (e) {
+      print('Fehler beim Abrufen der Tagestatistik: $e');
+      return [];
+    }
+  }
+
   Future<List<List<dynamic>>> fetchSelect(String s) async {
     try {
       List<List<dynamic>> results = await connection.query(s);
