@@ -83,7 +83,7 @@ class MainScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => StockScreenV2(db: database)),
+                MaterialPageRoute(builder: (context) => StockScreenV2(database: database)),
               );
             },
           ),

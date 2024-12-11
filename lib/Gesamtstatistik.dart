@@ -233,7 +233,7 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
                             .take(itemsPerPage)
                             .map((data) {
                           bool batteryReached = double.parse(data['batterie_status']) == 100;
-                          bool boilerExceeded = double.parse(data['boiler_temp']) > 140;
+                          bool boilerExceeded = (data['boiler_temp']) > 140;
 
                           return DataRow(cells: [
                             // Datum anzeigen

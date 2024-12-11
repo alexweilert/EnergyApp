@@ -6,8 +6,7 @@ class PostgresDatabase {
   Future<void> connectToDatabase() async {
     try {
       connection = PostgreSQLConnection(
-        "10.0.2.2",
-        //"192.168.56.1",
+        "10.0.2.2",   //"192.168.56.1",
         5432,
         "postgres",
         username: "postgres",
@@ -19,6 +18,31 @@ class PostgresDatabase {
       print('Fehler beim Herstellen der Verbindung zur Datenbank: $e');
     }
   }
+
+  Future<void> connectWithRetry({int maxRetries = 5, int retryDelaySeconds = 5}) async {
+    int attempt = 0;
+    if(connection.isClosed){
+      while (attempt < maxRetries) {
+        attempt++;
+        try {
+          print("Verbindungsversuch $attempt von $maxRetries...");
+          await connectToDatabase();
+          print("Verbindung erfolgreich!");
+          return;
+        } catch (e) {
+          print("Fehler bei der Verbindung: $e");
+          if (attempt >= maxRetries) {
+            print(
+              "Maximale Anzahl von Wiederholungen erreicht. Verbindung fehlgeschlagen.");
+            rethrow;
+        }
+          print("Erneuter Versuch in $retryDelaySeconds Sekunden...");
+          await Future.delayed(Duration(seconds: retryDelaySeconds));
+        }
+      }
+    }
+  }
+
 
   Future<void> disconnect() async {
     try {
@@ -32,7 +56,7 @@ class PostgresDatabase {
   Future<List<Map<String, dynamic>>> fetchYearlyStatistics() async {
     try {
       if(connection.isClosed) {
-        connectToDatabase();
+        connectWithRetry();
       }
       List<List<dynamic>> results = await connection.query('''
       SELECT 
@@ -61,7 +85,7 @@ class PostgresDatabase {
   Future<List<Map<String, dynamic>>> fetchDailyStatistics({DateTime? startDate, DateTime? endDate}) async {
     try {
       if (connection.isClosed) {
-        await connectToDatabase();
+        connectWithRetry();
       }
 
       String query = '''
@@ -117,8 +141,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetchAllYearChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE time = '00:00:00' GROUP BY year, month, day, time, temperature;";
@@ -144,8 +168,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetchYearChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE year = '2023' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
@@ -171,8 +195,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetchCurrentYearChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE year = '2023' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
@@ -198,8 +222,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetch6MonthChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE year = '2023' AND month <= '6' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
@@ -225,8 +249,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetchMonthChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE year = '2023' AND month = '1' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
@@ -252,8 +276,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetch5DaysChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE year = '2023'AND Month = '1' AND day <= 5 AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0 GROUP BY year, month, day, time, temperature;";
@@ -279,8 +303,8 @@ class PostgresDatabase {
 
   Future<List<Map<String, dynamic>>> fetchDayChartData(String tableName) async {
     try {
-      if(connection.isClosed) {
-        connectToDatabase();
+      if (connection.isClosed) {
+        connectWithRetry();
       }
       String query_start = "SELECT year, month, day, time, temperature FROM ";
       String query_end =" WHERE year = '2023' AND month = '1' AND day = '1' AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0 ORDER BY time;";
@@ -313,4 +337,5 @@ class PostgresDatabase {
       return [];
     }
   }
+
 }
