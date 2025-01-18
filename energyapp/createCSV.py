@@ -9,8 +9,8 @@ output_file2 = "battery_data_per_minute.csv"
 
 # Define the time period for the data (one year)
 start_date = datetime(2023, 1, 1, 0, 0, 0)  # Start of the year
-end_date = datetime(2024, 12, 31, 23, 59, 59)  # End of the year
-time_step = timedelta(minutes=1)  # Step is now in minutes
+end_date = datetime(2025, 12, 31, 23, 59, 59)  # End of the year
+time_step = timedelta(minutes=15)  # Step is now in minutes
 
 
 # Helper function to simulate seasonal changes
