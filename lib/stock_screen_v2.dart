@@ -31,9 +31,29 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
   List<Map<String, dynamic>> day5DataB2 = [];
   List<Map<String, dynamic>> dayDataB2 = [];
 
+  List<FlSpot> chart1DataMax = [];
+  List<FlSpot> chart1Data1Year = [];
+  List<FlSpot> chart1DataYearNow = [];
+  List<FlSpot> chart1Data6Months = [];
+  List<FlSpot> chart1Data1Month = [];
+  List<FlSpot> chart1Data5Days = [];
+  List<FlSpot> chart1Data1Day = [];
+
+  List<FlSpot> chart2DataMax = [];
+  List<FlSpot> chart2Data1Year = [];
+  List<FlSpot> chart2DataYearNow = [];
+  List<FlSpot> chart2Data6Months = [];
+  List<FlSpot> chart2Data1Month = [];
+  List<FlSpot> chart2Data5Days = [];
+  List<FlSpot> chart2Data1Day = [];
+
+  int currentYearMonthsCount = 0;
+  int maxYearMonthsCount = 0;
+
   @override
   void initState() {
     super.initState();
+    _loadData();
     _tabController = TabController(length: 7, vsync: this);
     _tabController.addListener(() {
       setState(() {
@@ -42,52 +62,32 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
     });
   }
 
-  List<FlSpot> getChartData() {
-    switch (selectedTab) {
-      case 0: return [FlSpot(0, 198), FlSpot(3, 196), FlSpot(6, 200), FlSpot(9, 198), FlSpot(12, 199), FlSpot(15, 198), FlSpot(18, 196), FlSpot(21, 197), FlSpot(24, 198)];
-      case 1: return [FlSpot(0, 195), FlSpot(1, 196), FlSpot(2, 198), FlSpot(3, 197), FlSpot(4, 196), FlSpot(5, 199)];
-      case 2: return [FlSpot(0, 190), FlSpot(7, 192), FlSpot(15, 195), FlSpot(22, 198), FlSpot(30, 200)];
-      case 3: return [FlSpot(0, 185), FlSpot(30, 188), FlSpot(60, 190), FlSpot(90, 195), FlSpot(120, 192), FlSpot(150, 195), FlSpot(180, 198)];
-      case 4: return [FlSpot(0, 185), FlSpot(60, 190), FlSpot(120, 200), FlSpot(180, 198), FlSpot(240, 196), FlSpot(300, 195)];
-      case 5: return [FlSpot(0, 180), FlSpot(60, 185), FlSpot(120, 190), FlSpot(180, 195), FlSpot(240, 192), FlSpot(300, 198), FlSpot(360, 200)];
-      case 6: return [FlSpot(0, 175), FlSpot(60, 180), FlSpot(120, 185), FlSpot(180, 190), FlSpot(240, 195), FlSpot(300, 198), FlSpot(360, 200)];
-      default: return [];
-    }
-  }
-
-  List<FlSpot> getChartDataSecond() {
-    switch (selectedTab) {
-      case 0: return [FlSpot(0, 150), FlSpot(1.5, 150),  FlSpot(3, 196), FlSpot(6, 220), FlSpot(9, 198), FlSpot(12, 222), FlSpot(15, 170), FlSpot(18, 196), FlSpot(21, 190), FlSpot(24, 198)];
-      case 1: return [FlSpot(0, 195), FlSpot(1, 196), FlSpot(2, 198), FlSpot(3, 197), FlSpot(4, 196), FlSpot(5, 199)];
-      case 2: return [FlSpot(0, 190), FlSpot(7, 192), FlSpot(15, 195), FlSpot(22, 198), FlSpot(30, 200)];
-      case 3: return [FlSpot(0, 185), FlSpot(30, 188), FlSpot(60, 190), FlSpot(90, 195), FlSpot(120, 192), FlSpot(150, 195), FlSpot(180, 198)];
-      case 4: return [FlSpot(0, 185), FlSpot(60, 190), FlSpot(120, 200), FlSpot(180, 198), FlSpot(240, 196), FlSpot(300, 195)];
-      case 5: return [FlSpot(0, 180), FlSpot(60, 185), FlSpot(120, 190), FlSpot(180, 195), FlSpot(240, 192), FlSpot(300, 198), FlSpot(360, 200)];
-      case 6: return [FlSpot(0, 175), FlSpot(60, 180), FlSpot(120, 185), FlSpot(180, 190), FlSpot(240, 195), FlSpot(300, 198), FlSpot(360, 200)];
-      default: return [];
-    }
-  }
-
   Future<void> _loadData() async {
     try {
       if (widget.database.connection.isClosed) {
         widget.database.connectToDatabase();
       }
-      dayData = await widget.database.fetchDayChartData('boiler');
-      day5Data = await widget.database.fetch5DaysChartData('boiler');
-      monthData = await widget.database.fetchMonthChartData('boiler');
-      month6Data = await widget.database.fetch6MonthChartData('boiler');
-      yearCurrentData = await widget.database.fetchCurrentYearChartData('boiler');
-      yearData = await widget.database.fetchYearChartData('boiler');
-      yearAllData = await widget.database.fetchAllYearChartData('boiler');
+      dayData = await widget.database.fetchLast24HoursData('boiler');
+      day5Data = await widget.database.fetchLast5DaysData('boiler');
+      monthData = await widget.database.fetchMonthData('boiler');
+      month6Data = await widget.database.fetch6MonthData('boiler');
+      yearCurrentData = await widget.database.fetchCurrentYearlyData('boiler');
+      yearData = await widget.database.fetchYearlyData('boiler');
+      yearAllData = await widget.database.fetchYearlyMaxData('boiler');
 
-      dayDataB2 = await widget.database.fetchDayChartData('boiler2');
-      day5DataB2 = await widget.database.fetch5DaysChartData('boiler2');
-      monthDataB2 = await widget.database.fetchMonthChartData('boiler2');
-      month6DataB2 = await widget.database.fetch6MonthChartData('boiler2');
-      yearCurrentDataB2 = await widget.database.fetchCurrentYearChartData('boiler2');
-      yearDataB2 = await widget.database.fetchYearChartData('boiler2');
-      yearAllDataB2 = await widget.database.fetchAllYearChartData('boiler2');
+      dayDataB2 = await widget.database.fetchLast24HoursData('boiler2');
+      day5DataB2 = await widget.database.fetchLast5DaysData('boiler2');
+      monthDataB2 = await widget.database.fetchMonthData('boiler2');
+      month6DataB2 = await widget.database.fetch6MonthData('boiler2');
+      yearCurrentDataB2 = await widget.database.fetchCurrentYearlyData('boiler2');
+      yearDataB2 = await widget.database.fetchYearlyData('boiler2');
+      yearAllDataB2 = await widget.database.fetchYearlyMaxData('boiler2');
+
+      currentYearMonthsCount = await widget.database.countMonthsCurrentYear('boiler');
+      maxYearMonthsCount = await widget.database.countMonthsMax('boiler');
+
+      setState(() {});
+      getFLSpotDataReady();
       setState(() {});
     } catch (e) {
       print("Fehler beim Laden der Jahresdaten: $e");
@@ -95,9 +95,6 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
   }
 
   List<FlSpot> convertToFlSpots(List<Map<String, dynamic>> data) {
-    //if (data.length != 365) {
-      //throw ArgumentError('The input list must contain exactly 365 entries.');
-    //}
 
     return List<FlSpot>.generate(data.length, (index) {
       final temperature = data[index]['Temperature'];
@@ -110,61 +107,72 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
     });
   }
 
+  void getFLSpotDataReady() {
+    chart1DataMax = convertToFlSpots(yearAllData);
+    chart1Data1Year = convertToFlSpots(yearData);
+    chart1DataYearNow = convertToFlSpots(yearCurrentData);
+    chart1Data6Months = convertToFlSpots(month6Data);
+    chart1Data1Month = convertToFlSpots(monthData);
+    chart1Data5Days = convertToFlSpots(day5Data);
+    chart1Data1Day = convertToFlSpots(dayData);
+
+    chart2DataMax = convertToFlSpots(yearAllDataB2);
+    chart2Data1Year = convertToFlSpots(yearDataB2);
+    chart2DataYearNow = convertToFlSpots(yearCurrentDataB2);
+    chart2Data6Months = convertToFlSpots(month6DataB2);
+    chart2Data1Month = convertToFlSpots(monthDataB2);
+    chart2Data5Days = convertToFlSpots(day5DataB2);
+    chart2Data1Day = convertToFlSpots(dayDataB2);
+
+    setState(() {});
+  }
+
+
   List<FlSpot> getChartDataFromDB() {
-    List<FlSpot> result = [];
-    _loadData();
     switch (selectedTab) {
       case 0:
-        result = convertToFlSpots(dayData);
-        return result;
+        return chart1Data1Day;
       case 1:
-        result = convertToFlSpots(day5Data);
-        return result;
+        return chart1Data5Days;
       case 2:
-        result = convertToFlSpots(monthData);
-        return result;
+        return chart1Data1Month;
       case 3:
-        result = convertToFlSpots(month6Data);
-        return result;
+        return chart1Data6Months;
       case 4:
-        result = convertToFlSpots(yearCurrentData);
-        return result;
+        if (chart1DataYearNow.length == 1) {
+          // Add a dummy point to create a flat line
+          chart1DataYearNow.add(FlSpot(chart1DataYearNow[0].x + 1, chart1DataYearNow[0].y));
+        }
+        return chart1DataYearNow;
       case 5:
-        result = convertToFlSpots(yearData);
-        return result;
+        return chart1Data1Year;
       case 6:
-        result = convertToFlSpots(yearAllData);
-        return result;
+        return chart1DataMax;
       default:
         return [];
     }
   }
 
   List<FlSpot> getChartDataFromDBB2() {
-    List<FlSpot> result = [];
-    _loadData();
     switch (selectedTab) {
       case 0:
-        result = convertToFlSpots(dayDataB2);
-        return result;
+        return chart2Data1Day;
       case 1:
-        result = convertToFlSpots(day5DataB2);
-        return result;
+        return chart2Data5Days;
       case 2:
-        result = convertToFlSpots(monthDataB2);
-        return result;
+        return chart2Data1Month;
       case 3:
-        result = convertToFlSpots(month6DataB2);
-        return result;
+        return chart2Data6Months;
       case 4:
-        result = convertToFlSpots(yearCurrentDataB2);
-        return result;
+        if (chart2DataYearNow.length == 1) {
+          // Add a dummy point to create a flat line
+          chart2DataYearNow.add(FlSpot(chart2DataYearNow[0].x + 1, chart2DataYearNow[0].y));
+        }
+        return chart2DataYearNow;
       case 5:
-        result = convertToFlSpots(yearDataB2);
-        return result;
+        return chart2Data1Year;
       case 6:
-        result = convertToFlSpots(yearAllDataB2);
-        return result;
+        return chart2DataMax;
       default:
         return [];
     }
@@ -184,14 +192,22 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
   }
 
   double getInterval() {
+    //regulates how many intervals are set through the x axis
     switch (selectedTab) {
+      //96Inputs-15min interval
       case 0: return 12;
-      case 1: return 96;
+      //120Inputs-1h interval
+      case 1: return 24;
+      //30Inputs-7d interval
       case 2: return 7;
-      case 3: return 30;
-      case 4: return 62;
-      case 5: return 62;
-      case 6: return 62;
+      //6Inputs-1m Interval
+      case 3: return 1;
+      //1-12Inputs-1m Interval
+      case 4: return 2;
+      //12Inputs-1y Interval
+      case 5: return 2;
+      //1-maxInputs-1m Interval
+      case 6: return 12;
       default: return 1;
     }
   }
@@ -200,12 +216,13 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
     DateTime now = DateTime.now();
     switch (selectedTab) {
       case 0: return Text(DateFormat('HH:mm').format(now.add(Duration(minutes: 15 * value.toInt()))), style: TextStyle(color: Colors.grey, fontSize: 10));
-      case 1: return Text(DateFormat('d. MMM').format(now.add(Duration(minutes: 15 * value.toInt()))), style: TextStyle(color: Colors.grey, fontSize: 10));
-      case 2: return Text(DateFormat('d. MMM').format(now.subtract(Duration(days: (30 - value.toInt()) * 1))), style: TextStyle(color: Colors.grey, fontSize: 10));
-      case 3: return Text(DateFormat('MMM').format(now.subtract(Duration(days: (180 - value.toInt()) * 1))), style: TextStyle(color: Colors.grey, fontSize: 10));
-      case 4: return Text(DateFormat('MMM').format(now.subtract(Duration(days: (360 - value.toInt()) * 1))), style: TextStyle(color: Colors.grey, fontSize: 10));
-      case 5: return Text(DateFormat('MMM').format(now.subtract(Duration(days: (360 - value.toInt()) * 1))), style: TextStyle(color: Colors.grey, fontSize: 10));
-      case 6: return Text((now.year - (5 - (value / 60).toInt())).toString(), style: TextStyle(color: Colors.grey, fontSize: 10));
+      case 1: return Text(DateFormat('d. MMM').format(now.subtract(Duration(minutes: 60 * (120 - value.toInt())))), style: TextStyle(color: Colors.grey, fontSize: 10));
+      case 2: return Text(DateFormat('d. MMM').format(now.subtract(Duration(days: (28 - value.toInt())))), style: TextStyle(color: Colors.grey, fontSize: 10));
+      case 3: return Text(DateFormat('MMM').format(now.subtract(Duration(days: 30 * (6 - value.toInt())))), style: TextStyle(color: Colors.grey, fontSize: 10));
+      case 4: return Text(DateFormat('MMM').format(now.subtract(Duration(days: 30 * ((currentYearMonthsCount) - value.toInt())))), style: TextStyle(color: Colors.grey, fontSize: 10));
+      case 5: return Text(DateFormat('MMM').format(now.subtract(Duration(days: 30 * (12- value.toInt())))), style: TextStyle(color: Colors.grey, fontSize: 10));
+      case 6: return Text(DateFormat('y').format(now.subtract(Duration(days: 30 * ((maxYearMonthsCount-1)- value.toInt())))), style: TextStyle(color: Colors.grey, fontSize: 10));
+      //case 6: return Text((now.year - (5 - (value / 60).toInt())).toString(), style: TextStyle(color: Colors.grey, fontSize: 10));
       default: return Text("");
     }
   }
@@ -218,8 +235,8 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
     double minY2 = getChartDataFromDB().map((spot) => spot.y).reduce((a, b) => a < b ? a : b);
     double maxY2 = getChartDataFromDB().map((spot) => spot.y).reduce((a, b) => a > b ? a : b);
     //Calculate a suitable minimum
-    double result1 = minY - (maxY - minY) * 0.1;
-    double result2 = minY2 - (maxY2 - minY2) * 0.1;
+    double result1 = minY - (maxY - minY) * 0.1 - 5;
+    double result2 = minY2 - (maxY2 - minY2) * 0.1 - 5;
     //Checks which min is smaller and returns it
     if(result1 < result2) {
       return result1;
@@ -237,8 +254,8 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
     double minY2 = getChartDataFromDB().map((spot) => spot.y).reduce((a, b) => a < b ? a : b);
     double maxY2 = getChartDataFromDB().map((spot) => spot.y).reduce((a, b) => a > b ? a : b);
     //Calculate a suitable maximum
-    double result1 = maxY + (maxY - minY) * 0.1;
-    double result2 = maxY2 + (maxY2 - minY2) * 0.1;
+    double result1 = maxY + (maxY - minY) * 0.1 +5;
+    double result2 = maxY2 + (maxY2 - minY2) * 0.1+5;
     //Checks which min is smaller and returns it
     if(result1 > result2) {
       return result1;
@@ -252,7 +269,7 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Boiler"),
+        title: Text("Heizung"),
         backgroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
