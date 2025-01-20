@@ -139,18 +139,59 @@ class PostgresDatabase {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchAllYearChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetchLast24HoursData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE time = '00:00:00' GROUP BY year, month, day, time, temperature;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Calculate current time rounded down to the last quarter-hour
+      DateTime now = DateTime.now();
+      int minuteOffset = now.minute % 15;
+      DateTime roundedTime = now.subtract(Duration(
+          minutes: minuteOffset,
+          seconds: now.second,
+          milliseconds: now.millisecond,
+          microseconds: now.microsecond));
+
+      // Calculate the time 24 hours ago
+      DateTime startTime = roundedTime.subtract(Duration(hours: 24));
+
+      // Extract year, month, day, and time for filtering
+      int startYear = startTime.year;
+      int startMonth = startTime.month;
+      int startDay = startTime.day;
+      String startTimeOnly = DateFormat('HH:mm:ss').format(startTime);
+
+      int endYear = roundedTime.year;
+      int endMonth = roundedTime.month;
+      int endDay = roundedTime.day;
+      String endTimeOnly = DateFormat('HH:mm:ss').format(roundedTime);
+      //print(startDay);
+      //print(startTimeOnly);
+      //print(endDay);
+      //print(endTimeOnly);
+
+      // Build the query considering the structure of the database
+      String query = """
+      SELECT year, month, day, time, temperature
+      FROM $tableName
+      WHERE 
+        (year > $startYear OR (year = $startYear AND (month > $startMonth OR (month = $startMonth AND (day > $startDay OR (day = $startDay AND time >= '$startTimeOnly'))))))
+        AND
+        (year < $endYear OR (year = $endYear AND (month < $endMonth OR (month = $endMonth AND (day < $endDay OR (day = $endDay AND time <= '$endTimeOnly'))))))
+        AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0
+      ORDER BY year, month, day, time;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      //results.forEach((row) {
+        //print('Raw time: ${row[3]}');  // Print the raw time array
+      //});
+
+      // Map the results to the expected structure
       return results.map((row) {
         return {
           'Year': row[0],
@@ -161,23 +202,57 @@ class PostgresDatabase {
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der Jahresstatistik: $e');
+      print('Error fetching last 24 hours data: $e');
       return [];
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchYearChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetchLast5DaysData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE year = '2023' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Calculate current time rounded down to the last hour
+      DateTime now = DateTime.now();
+      int hourOffset = now.minute;  // Using minute to round to the last hour
+      DateTime roundedTime = now.subtract(Duration(
+          minutes: hourOffset,
+          seconds: now.second,
+          milliseconds: now.millisecond,
+          microseconds: now.microsecond));
+
+
+      // Calculate the time 24 hours ago
+      DateTime startTime = roundedTime.subtract(Duration(days: 5));
+
+      // Extract year, month, day, and time for filtering
+      int startYear = startTime.year;
+      int startMonth = startTime.month;
+      int startDay = startTime.day;
+      String startTimeOnly = DateFormat('HH:mm:ss').format(startTime);
+
+      int endYear = roundedTime.year;
+      int endMonth = roundedTime.month;
+      int endDay = roundedTime.day;
+      String endTimeOnly = DateFormat('HH:mm:ss').format(roundedTime);
+
+      // Build the query considering the structure of the database
+      String query = """
+      SELECT year, month, day, time, temperature
+      FROM $tableName
+      WHERE 
+        (year > $startYear OR (year = $startYear AND (month > $startMonth OR (month = $startMonth AND (day > $startDay OR (day = $startDay AND time >= '$startTimeOnly'))))))
+        AND
+        (year < $endYear OR (year = $endYear AND (month < $endMonth OR (month = $endMonth AND (day < $endDay OR (day = $endDay AND time <= '$endTimeOnly'))))))
+        AND EXTRACT(EPOCH FROM time)::INT % (60 * 60) = 0
+      ORDER BY year, month, day, time;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      // Map the results to the expected structure
       return results.map((row) {
         return {
           'Year': row[0],
@@ -188,145 +263,308 @@ class PostgresDatabase {
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der Jahresstatistik: $e');
+      print('Error fetching last 5 days data: $e');
       return [];
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchCurrentYearChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetchMonthData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE year = '2023' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Calculate the date range for the last 30 days
+      DateTime now = DateTime.now();
+      DateTime endDate = now.subtract(Duration(days: 0));
+      DateTime startDate = now.subtract(Duration(days: 28));
+
+      // Extract year, month, and day for start and end dates
+      int startYear = startDate.year;
+      int startMonth = startDate.month;
+      int startDay = startDate.day;
+
+      int endYear = endDate.year;
+      int endMonth = endDate.month;
+      int endDay = endDate.day;
+
+      // Build the query to calculate daily mean temperature for the last 30 days
+      String query = """
+    SELECT year, month, day, AVG(temperature) AS mean_temperature
+    FROM $tableName
+    WHERE 
+      (year > $startYear OR (year = $startYear AND (month > $startMonth OR (month = $startMonth AND day >= $startDay))))
+      AND
+      (year < $endYear OR (year = $endYear AND (month < $endMonth OR (month = $endMonth AND day <= $endDay))))
+    GROUP BY year, month, day
+    ORDER BY year, month, day;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      // Map the results to the expected structure
       return results.map((row) {
         return {
           'Year': row[0],
           'Month': row[1],
           'Day': row[2],
-          'Time': row[3],
-          'Temperature': row[4],
+          'Temperature': row[3],
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der derzeitigen Jahresstatistik: $e');
+      print('Error fetching monthly chart data: $e');
       return [];
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetch6MonthChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetch6MonthData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE year = '2023' AND month <= '6' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Calculate the date range for the past year
+      DateTime now = DateTime.now();
+      DateTime endDate = now;
+      DateTime startDate = now.subtract(Duration(days: 180));
+
+      // Extract year and month for the start and end dates
+      int startYear = startDate.year;
+      int startMonth = startDate.month;
+
+      int endYear = endDate.year;
+      int endMonth = endDate.month;
+
+      // Build the query to calculate monthly mean temperature for the past year
+      String query = """
+    SELECT year, month, AVG(temperature) AS mean_temperature
+    FROM $tableName
+    WHERE 
+      (year > $startYear OR (year = $startYear AND month >= $startMonth))
+      AND
+      (year < $endYear OR (year = $endYear AND month <= $endMonth))
+    GROUP BY year, month
+    ORDER BY year, month;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      // Map the results to the expected structure
       return results.map((row) {
         return {
           'Year': row[0],
           'Month': row[1],
-          'Day': row[2],
-          'Time': row[3],
-          'Temperature': row[4],
+          'Temperature': row[2],
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der 6 Monatstatistik: $e');
+      print('Error fetching yearly monthly averages: $e');
       return [];
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchMonthChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetchYearlyData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE year = '2023' AND month = '1' AND time = '00:00:00' GROUP BY year, month, day, time, temperature;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Calculate the date range for the past year
+      DateTime now = DateTime.now();
+      DateTime endDate = now;
+      DateTime startDate = now.subtract(Duration(days: 365));
+
+      // Extract year and month for the start and end dates
+      int startYear = startDate.year;
+      int startMonth = startDate.month;
+
+      int endYear = endDate.year;
+      int endMonth = endDate.month;
+
+      // Build the query to calculate monthly mean temperature for the past year
+      String query = """
+    SELECT year, month, AVG(temperature) AS mean_temperature
+    FROM $tableName
+    WHERE 
+      (year > $startYear OR (year = $startYear AND month >= $startMonth))
+      AND
+      (year < $endYear OR (year = $endYear AND month <= $endMonth))
+    GROUP BY year, month
+    ORDER BY year, month;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      // Map the results to the expected structure
       return results.map((row) {
         return {
           'Year': row[0],
           'Month': row[1],
-          'Day': row[2],
-          'Time': row[3],
-          'Temperature': row[4],
+          'Temperature': row[2],
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der Monatsstatistik: $e');
+      print('Error fetching yearly monthly averages: $e');
       return [];
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetch5DaysChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetchCurrentYearlyData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE year = '2023'AND Month = '1' AND day <= 5 AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0 GROUP BY year, month, day, time, temperature;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Get the current date and extract the year and month
+      DateTime now = DateTime.now();
+      int currentYear = now.year;
+      int currentMonth = now.month;
+
+      // Build the query to calculate the monthly mean temperature for the current year
+      // up until the current month (including the current month)
+      String query = """
+    SELECT year, month, AVG(temperature) AS mean_temperature
+    FROM $tableName
+    WHERE 
+      year = $currentYear AND
+      month <= $currentMonth  -- Include the current month and previous months
+    GROUP BY year, month
+    ORDER BY month;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      // Map the results to the expected structure
       return results.map((row) {
+        print(row);
         return {
           'Year': row[0],
           'Month': row[1],
-          'Day': row[2],
-          'Time': row[3],
-          'Temperature': row[4],
+          'Temperature': row[2],
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der 5 Tagestatistik: $e');
+      print('Error fetching yearly monthly averages: $e');
       return [];
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchDayChartData(String tableName) async {
+  Future<List<Map<String, dynamic>>> fetchYearlyMaxData(String tableName) async {
     try {
       if (connection.isClosed) {
         connectWithRetry();
       }
-      String query_start = "SELECT year, month, day, time, temperature FROM ";
-      String query_end =" WHERE year = '2023' AND month = '1' AND day = '1' AND EXTRACT(EPOCH FROM time)::INT % (15 * 60) = 0 ORDER BY time;";
-      String query = "";
-      query += query_start + tableName + query_end;
 
+      // Get the current date and extract the year and month
+      DateTime now = DateTime.now();
+      int currentYear = now.year;
+      int currentMonth = now.month;
+
+      // Build the query to calculate the monthly mean temperature for all years
+      // and include months up to the current month for the current year
+      String query = """
+    SELECT year, month, AVG(temperature) AS mean_temperature
+    FROM $tableName
+    WHERE 
+      (year < $currentYear)  -- All past years
+      OR 
+      (year = $currentYear AND month <= $currentMonth)  -- Current year, up to the current month
+    GROUP BY year, month
+    ORDER BY year, month;
+    """;
+
+      // Execute the query
       List<List<dynamic>> results = await connection.query(query);
 
+      // Map the results to the expected structure
       return results.map((row) {
+        print(row);
         return {
           'Year': row[0],
           'Month': row[1],
-          'Day': row[2],
-          'Time': row[3],
-          'Temperature': row[4],
+          'Temperature': row[2],
         };
       }).toList();
     } catch (e) {
-      print('Fehler beim Abrufen der Tagestatistik: $e');
+      print('Error fetching yearly monthly averages: $e');
       return [];
     }
   }
+
+
+
+  Future<int> countMonthsCurrentYear(String tableName) async {
+    try {
+      if (connection.isClosed) {
+        connectWithRetry();
+      }
+
+      // Get the current year and month
+      DateTime now = DateTime.now();
+      int currentYear = now.year;
+      int currentMonth = now.month;
+
+      // Build the query to count months for the current year
+      String query = """
+    SELECT COUNT(DISTINCT month)
+    FROM $tableName
+    WHERE 
+      year = $currentYear AND month <= $currentMonth;
+    """;
+
+      // Execute the query
+      List<List<dynamic>> results = await connection.query(query);
+
+      // Extract the count from the query result
+      if (results.isNotEmpty && results[0].isNotEmpty) {
+        return results[0][0] as int;
+      } else {
+        return 0; // No months found
+      }
+    } catch (e) {
+      print('Error counting completed or ongoing months in current year: $e');
+      return 0; // Return 0 in case of an error
+    }
+  }
+
+  Future<int> countMonthsMax(String tableName) async {
+    try {
+      if (connection.isClosed) {
+        connectWithRetry();
+      }
+
+      // Get the current year and month
+      DateTime now = DateTime.now();
+      int currentYear = now.year;
+      int currentMonth = now.month;
+
+      // Build the query to count the months that are either over or currently in progress
+      String query = """
+    SELECT COUNT(DISTINCT (year, month))
+    FROM $tableName
+    WHERE 
+      (year < $currentYear OR (year = $currentYear AND month <= $currentMonth));
+    """;
+
+      // Execute the query
+      List<List<dynamic>> results = await connection.query(query);
+
+      // Extract the count from the query result
+      if (results.isNotEmpty && results[0].isNotEmpty) {
+        return results[0][0] as int;
+      } else {
+        return 0; // No months found
+      }
+    } catch (e) {
+      print('Error counting completed or ongoing months: $e');
+      return 0; // Return 0 in case of an error
+    }
+  }
+
 
   Future<List<List<dynamic>>> fetchSelect(String s) async {
     try {
