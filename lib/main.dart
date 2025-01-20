@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'postgresDatabase.dart';
 import 'stock_screen.dart';
 import 'stock_screen_v2.dart';
+import 'stock_screen_v3.dart';
 import 'Gesamtstatistik.dart';
 import 'ToggleItem.dart';
 
@@ -73,7 +74,7 @@ class MainScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => StockScreen()),
+                MaterialPageRoute(builder: (context) => StockScreenV3(database: database)),
               );
             },
           ),
