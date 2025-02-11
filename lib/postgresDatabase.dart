@@ -1,4 +1,5 @@
 import 'package:postgres/postgres.dart';
+import 'package:intl/intl.dart';
 
 class PostgresDatabase {
   late PostgreSQLConnection connection;
@@ -62,11 +63,13 @@ class PostgresDatabase {
       SELECT 
         jahr,
         COUNT(DISTINCT CASE WHEN batterie_status = 100 THEN DATE(jahr || '-' || monat || '-' || tag) END) AS anzahl_batterie_100,
-        COUNT(DISTINCT CASE WHEN boiler_temp > 140 THEN DATE(jahr || '-' || monat || '-' || tag) END) AS anzahl_boiler_ueber_140
+        COUNT(DISTINCT CASE WHEN boiler_temp > 100 THEN DATE(jahr || '-' || monat || '-' || tag) END) AS anzahl_boiler_ueber_140
       FROM 
         gesamtstatistik
       GROUP BY 
-        jahr;
+        jahr
+      ORDER BY 
+        jahr DESC;
       ''');
 
       return results.map((row) {
@@ -120,7 +123,7 @@ class PostgresDatabase {
         }
       }
 
-      query += '\nGROUP BY Jahr, Monat, Tag\nORDER BY Jahr, Monat, Tag';
+      query += '\nGROUP BY Jahr, Monat, Tag\nORDER BY Jahr DESC, Monat DESC, Tag DESC';
 
       List<List<dynamic>> results = await connection.query(query);
 

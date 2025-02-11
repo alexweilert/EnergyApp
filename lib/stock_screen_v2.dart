@@ -295,6 +295,13 @@ class _StockScreenStateV2 extends State<StockScreenV2> with SingleTickerProvider
               tabs: [Tab(text: "1T"), Tab(text: "5T"), Tab(text: "1M"), Tab(text: "6M"), Tab(text: "YTD"), Tab(text: "1J"), Tab(text: "MAX")],
             ),
             SizedBox(height: 16),
+            if (getChartDataFromDB().isEmpty)
+              Expanded(
+                child: Center(
+                  child: Text('Daten werden geladen.'),
+                ),
+              )
+            else
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),

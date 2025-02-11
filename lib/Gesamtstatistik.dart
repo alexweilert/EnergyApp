@@ -85,6 +85,7 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
           title: Text("Gesamtstatistik"),
           centerTitle: true,
           backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
         ),
         body: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -103,7 +104,7 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isYearly ? Colors.red : Colors.grey,
-                      foregroundColor: Colors.black, // Textfarbe
+                      foregroundColor: Colors.white, // Textfarbe
                     ),
                     child: Text('Jahresstatistik'),
                   ),
@@ -117,7 +118,7 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: !isYearly ? Colors.red : Colors.grey,
-                      foregroundColor: Colors.black, // Textfarbe
+                      foregroundColor: Colors.white, // Textfarbe
                     ),
                     child: Text('Tagesstatistik'),
                   ),
@@ -137,33 +138,55 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
   Widget _buildDateFilter() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: ElevatedButton(
-        onPressed: () async {
-          DateTimeRange? pickedRange = await showDateRangePicker(
-            context: context,
-            initialDateRange: fromDate != null && toDate != null
-                ? DateTimeRange(start: fromDate!, end: toDate!)
-                : null,
-            firstDate: DateTime(2000), // Anfangsdatum festlegen
-            lastDate: DateTime.now().add(Duration(days: 365 * 10)), // Zukünftige Jahre erlauben
-          );
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ElevatedButton(
+            onPressed: () async {
+              DateTimeRange? pickedRange = await showDateRangePicker(
+                context: context,
+                initialDateRange: fromDate != null && toDate != null
+                    ? DateTimeRange(start: fromDate!, end: toDate!)
+                    : null,
+                firstDate: DateTime(2000), // Anfangsdatum festlegen
+                lastDate: DateTime.now().add(Duration(days: 365 * 10)), // Zukünftige Jahre erlauben
+              );
 
-          if (pickedRange != null) {
-            setState(() {
-              fromDate = pickedRange.start;
-              toDate = pickedRange.end;
-              _loadDailyData();
-            });
-          }
-        },
-        child: Text(
-          fromDate == null || toDate == null
-              ? 'Zeitraum wählen'
-              : 'Von: ${fromDate!.toLocal().toIso8601String().substring(0, 10)} '
-              'bis: ${toDate!.toLocal().toIso8601String().substring(0, 10)}',
-        ),
+              if (pickedRange != null) {
+                setState(() {
+                  fromDate = pickedRange.start;
+                  toDate = pickedRange.end;
+                  _loadDailyData();
+                });
+              }
+            },
+            child: Text(
+              fromDate == null || toDate == null
+                  ? 'Zeitraum wählen'
+                  : 'Von: ${fromDate!.toLocal().toIso8601String().substring(0, 10)} '
+                  'bis: ${toDate!.toLocal().toIso8601String().substring(0, 10)}',
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _resetDateFilter,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, // Farbe des Buttons
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Reset'),
+          ),
+        ],
       ),
     );
+  }
+
+  /// Funktion zum Zurücksetzen des Datumsfilters
+  void _resetDateFilter() {
+    setState(() {
+      fromDate = null;
+      toDate = null;
+      _loadDailyData(); // Initialabfrage durchführen
+    });
   }
 
   Widget _buildYearlyToggleButton() {
@@ -209,7 +232,7 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
         if (dailyData.isEmpty)
           Expanded(
             child: Center(
-              child: Text('Keine Daten gefunden.'),
+              child: Text('Daten werden geladen.'),
             ),
           )
         else
@@ -226,14 +249,14 @@ class _GesamtstatistikScreenState extends State<GesamtstatistikScreen> {
                         columns: const [
                           DataColumn(label: Text('Datum')),
                           DataColumn(label: Text('Batterie 100%')),
-                          DataColumn(label: Text('Boiler > 140°C')),
+                          DataColumn(label: Text('Boiler > 100°C')),
                         ],
                         rows: dailyData
                             .skip(currentPage * itemsPerPage)
                             .take(itemsPerPage)
                             .map((data) {
                           bool batteryReached = double.parse(data['batterie_status']) == 100;
-                          bool boilerExceeded = (data['boiler_temp']) > 140;
+                          bool boilerExceeded = (data['boiler_temp']) > 100;
 
                           return DataRow(cells: [
                             // Datum anzeigen
