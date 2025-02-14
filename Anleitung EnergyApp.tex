@@ -183,8 +183,8 @@ Widget build(BuildContext context) {
  // ...
 }
     \end{lstlisting}
-    Die \texttt{build()}-Methode ist dafür zuständig, die Seite der erweiterten Statistik initial zu laden.
-    Zu Beginn wird standardmäßig die Jahresstatistik durch den Aufruf von \texttt{\_buildYearlyView()} dargestellt. \\
+    Die \enquote{build()}-Methode ist dafür zuständig, die Seite der erweiterten Statistik initial zu laden.
+    Zu Beginn wird standardmäßig die Jahresstatistik durch den Aufruf von \enquote{\_buildYearlyView()} dargestellt. \\
     Zusätzlich enthält die Methode zwei Buttons, mit denen der Nutzer zwischen der jährlichen, also \enquote{_buildYearlyView},
     und täglichen, \enquote{_buildDailyView}, Statistik wechseln kann.
     Je nach Auswahl werden die entsprechenden Bildschirme geladen und den damit verbundenen Statistikdaten.
@@ -305,20 +305,15 @@ Widget _buildYearlyView() {
     \begin{lstlisting}[language=Dart]
 Future<void> _loadDailyData() async {
   try {
-    // Verbindung zur Datenbank sicherstellen
     if (widget.database.connection.isClosed) {
       await widget.database.connectToDatabase();
     }
-
-    // Daten abrufen: mit oder ohne Filter
     if (fromDate != null && toDate != null) {
-      // Wenn ein Datum-Filter gesetzt ist
       dailyData = await widget.database.fetchDailyStatistics(
         startDate: fromDate,
         endDate: toDate,
       );
     } else if (fromDate != null && toDate == null) {
-      // Wenn kein Filter gesetzt ist, alle Daten laden
       dailyData = await widget.database.fetchDailyStatistics(
         startDate: fromDate,
       );
@@ -339,7 +334,6 @@ Future<void> _loadDailyData() async {
     Der wesentliche Unterschied besteht jedoch darin, dass hier ein zusätzlicher Datumsfilter integriert wurde.
     Dieser Filter ermöglicht es, die Daten gezielt nach bestimmten Tagen oder Zeiträumen zu durchsuchen.
     Dadurch lassen sich einerseits unnötig große Datenmengen vermeiden und andererseits einzelne Tage gezielt analysieren.
-
     \begin{lstlisting}[language=Dart]
 Future<List<Map<String, dynamic>>>
     fetchDailyStatistics({DateTime? startDate, DateTime? endDate}) async {
@@ -347,14 +341,12 @@ Future<List<Map<String, dynamic>>>
     if (connection.isClosed) {
       connectWithRetry();
     }
-
     String query = '''
     SELECT DISTINCT ON (Jahr, Monat, Tag)
       Jahr, Monat, Tag, MAX(batterie_status)
             AS batterie_status, MAX(boiler_temp) AS boiler_temp
     FROM gesamtstatistik
   ''';
-
     List<String> conditions = [];
     if (startDate != null && endDate != null) {
       conditions.add('Jahr >= ${startDate.year}
@@ -372,23 +364,18 @@ Future<List<Map<String, dynamic>>>
       conditions.add('Monat <= ${endDate.month}');
       conditions.add('Tag <= ${endDate.day}');
     }
-
     if (conditions.isNotEmpty) {
       for(int i = 0; i < conditions.length; i++){
         if(i == 0){
           query += '\nWHERE ' + conditions.elementAt(i);
         } else {
           query += '\nAND ' + conditions.elementAt(i);
-
         }
       }
     }
-
     query += '\nGROUP BY Jahr, Monat, Tag\n
                     ORDER BY Jahr DESC, Monat DESC, Tag DESC';
-
     List<List<dynamic>> results = await connection.query(query);
-
     return results.map((row) {
       return {
         'Jahr': row[0],
@@ -419,7 +406,106 @@ Future<List<Map<String, dynamic>>>
     Die zurückgegebenen Ergebnisse werden in eine dynamische Liste umgewandelt, die dann weiterverarbeitet werden kann.
     Die beiden SQL-Abfragen sind recht flexibel und können mit kleineren Anpassungen mit anderen
     Tabellenstrukturen verwendet werden.
+    \begin{lstlisting}[language=Dart]
+Widget _buildDailyView() {
+  final int pageCount = (dailyData.length / itemsPerPage).ceil();
+  return Column(
+    children: [
+      _buildDateFilter(),
+      if (dailyData.isEmpty)
+        Expanded(
+          child: Center(
+            child: Text('Daten werden geladen.'),
+          ),
+        )
+      else
+      Expanded(
+        child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Datum')),
+                    DataColumn(label: Text('Batterie = 100%')),
+                    DataColumn(label: Text('Boiler > 100°C')),
+                  ],
+    // ...
+    \end{lstlisting}
+    Zunächst beginnt das Widget mit der Erstellung der und fragt ab, ob Daten überhaupt vorhanden sind, ist dies der Fall, wird ein Loading Screen imitiert,
+    da wir sonst auf Fehler auf visuelle Fehler in der App kommen.
+    Da alles Asynchron passiert wird währenddessen der Datumsfilter gebaut, welcher uns die einfache Möglichkeit erstellt,
+    nach einem Datum zu sortieren.
+    Im weiteren Verlauf wird die 3 Spaltenbreite Tabelle initialisiert.
 
+    Das Widget \enquote{\_buildDailyView()} beginnt mit der Initialisierung und überprüft, ob Daten verfügbar sind.
+    Falls keine Daten vorhanden sind, wird ein Ladebildschirm generiert. \\
+    Dies verhindert visuelle Fehler in der App, die auftreten könnten, wenn versucht wird, nicht vorhandene Daten anzuzeigen.
+    Da alle Prozesse asynchron ablaufen, wird währenddessen der Datumsfilter (\enquote{\_buildDateFilter()}) erstellt,
+    um den User das Filtern nach Tag, Monat und Jahr zu ermöglichen.
+    Um die Anzeige übersichtlich zu gestalten, wird in die Tabelle eine vertikalen und horizontalen
+    Scroll-Funktion versehen, (\enquote{SingleChildScrollView}).
+    \begin{lstlisting}[language=Dart]
+      //...
+child: DataTable (
+    columns: const [
+        DataColumn(label: Text('Datum')),
+        DataColumn(label: Text('Batterie = 100\%')),
+        DataColumn(label: Text('Boiler > 100C')),
+    ],
+  rows: dailyData
+    .skip(currentPage * itemsPerPage)
+    .take(itemsPerPage)
+    .map((data) {
+    bool batteryReached = double.parse(data['batterie_status']) == 100;
+    bool boilerExceeded = (data['boiler_temp']) > 100;
+    return DataRow(cells: [
+      DataCell(Text('${data['Tag'].toString().padLeft(2, '0')}.
+            ${data['Monat'].toString().padLeft(2, '0')}.${data['Jahr']}')),
+      DataCell(Row(
+        children: [
+          batteryReached
+            ? Icon(Icons.check, color: Colors.green) // Grüner Haken
+            : Icon(Icons.close, color: Colors.red), // Rotes X
+ // Pagination Steuerung
+  Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            onPressed: currentPage > 0
+            ? () {
+              setState(() {
+                currentPage--;
+              });
+            }
+                : null,
+            icon: Icon(Icons.arrow_back),
+            ),
+            Text('Seite ${currentPage + 1} von $pageCount'),
+            IconButton(
+            onPressed: currentPage < pageCount - 1
+            ? () {
+            setState(() {
+                currentPage++;
+            });
+            }
+    // ...
+    }
+    \end{lstlisting}
+    Die Daten aus den Datenbankaufrufen werden aus DailyData entzogen und weiter verarbeitet. Sollte die Batterie an
+    jenem Tag 100 Prozent erreicht haben oder der Boiler 100 Grad wird für diesen Tag ein Haken gesetzt,
+    andernfalls ein rotes Kreuz. Weiters wurde mittels itemsperPage initialisiert wie viele Daten pro Seite
+    angezeigt werden dürfen, um das Gerät zu entlasten und nicht tausende von Einträge zu haben.
+    Initial wurde dies auf 40 Einträge pro Seite limitiert und durch die Länge der Liste und der Anzahl der Items werden
+    die Anzahl der Seiten bestimmt. \\
+    Weiter wurden Pfeile implementiert, die sog. IconButtons, welche durch die Seiten hin durch navigieren können.
+    Die Daten aus den Datenbankabfragen werden aus \enquote{dailyData} entnommen und zur Anzeige weiterverarbeitet.
+    Falls die Batterie an einem bestimmten Tag eine Ladung von \enquote{100\%} erreicht hat oder der Boiler eine
+    Temperatur von über 100 Grad überschritten hat, wird für diesen Tag ein grüner Haken angezeigt.
+    Andernfalls erscheint ein rotes Kreuz.
 
     \bibliography{main.bib}
     \bibliographystyle{plain}
